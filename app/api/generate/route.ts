@@ -1,121 +1,68 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// ─── 1. TYPES DEFINITION (WICHTIG GEGEN FEHLER) ────────────────
-interface GenerateRequestBody {
-  prompt: string;
-}
-
-interface AnthropicResponse {
-  id: string;
-  type: string;
-  role: string;
-  content: Array<{
-    type: string;
-    text: string;
-  }>;
-  model: string;
-  stop_reason: string | null;
-  stop_sequence: string | null;
-  usage: {
-    input_tokens: number;
-    output_tokens: number;
-  };
-}
-
-// ─── 2. SYSTEM PROMPT ───────────────────────────────────────────
-function buildSystemPrompt(): string {
-  return `You are Nexyra Engine, an elite AI code generation system built by Nexyra Labs.
-Your role: Transform natural-language prompts into clean, production-ready Luau scripts for Roblox.
-
-Rules:
-- Output ONLY the pure Luau code.
-- NO markdown fences, NO talking, NO explanations.
-- Include inline comments for complex logic.
-- Follow idiomatic Roblox patterns (Task library, Type checking).
-- Ensure the code is immediately usable in Roblox Studio.`;
-}
-
-// ─── 3. ROUTE HANDLER ───────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
-    console.log("[nexyra/generate] Incoming request...");
-
-    // Supabase Setup
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    // Auth Check
-    const authHeader = req.headers.get("authorization");
-    const token = authHeader?.replace("Bearer ", "") ?? "";
-    
-    const { data: { user } } = token 
-      ? await supabase.auth.getUser(token) 
-      : await supabase.auth.getUser();
-
-    // Body Parsing
-    const body = (await req.json()) as GenerateRequestBody;
+    // 1. Auth & User Check
+    const { data: { user } } = await supabase.auth.getUser();
+    const body = await req.json();
     const { prompt } = body;
 
-    if (!prompt || prompt.trim().length === 0) {
-      return NextResponse.json({ message: "Prompt is required." }, { status: 400 });
-    }
+    if (!prompt) return NextResponse.json({ result: "-- No prompt provided" }, { status: 400 });
 
-    // Credit Check
+    // 2. Credits Check (Optional, falls du Testen willst, nimm das kurz raus)
     if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("credits")
-        .eq("id", user.id)
-        .single();
-
+      const { data: profile } = await supabase.from("profiles").select("credits").eq("id", user.id).single();
       if (profile && profile.credits <= 0) {
-        return NextResponse.json({ message: "Insufficient credits." }, { status: 402 });
+        return NextResponse.json({ result: "-- Insufficient Credits" }, { status: 402 });
       }
     }
 
-    // Anthropic API Key Check
+    // 3. Anthropic API Call
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
     if (!anthropicKey) {
-      return NextResponse.json({ message: "API Key missing." }, { status: 503 });
+      console.error("ANTHROPIC_API_KEY is missing in Env Variables!");
+      return NextResponse.json({ result: "-- API Key Missing" }, { status: 503 });
     }
 
-    // Claude API Call
-    const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": anthropicKey,
-        "anthropic-version": "2023-06-01",
+        "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify({
         model: "claude-3-5-sonnet-20240620",
         max_tokens: 2048,
-        temperature: 0.3,
-        system: buildSystemPrompt(),
-        messages: [{ role: "user", content: prompt.trim() }],
-      }),
+        system: "You are Nexyra Engine. Output ONLY pure Luau code. No markdown, no text.",
+        messages: [{ role: "user", content: prompt }]
+      })
     });
 
-    if (!aiResponse.ok) {
-      const errData = await aiResponse.json();
-      return NextResponse.json({ message: "Claude API Error" }, { status: 502 });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Anthropic API Error Details:", errorText);
+      return NextResponse.json({ result: "-- Claude Engine Error (502)" }, { status: 502 });
     }
 
-    const aiData = (await aiResponse.json()) as AnthropicResponse;
-    const result = aiData.content[0]?.text.trim() ?? "";
+    const data = await response.json();
+    const result = data.content[0]?.text || "-- Error generating code";
 
-    // Credits abziehen
+    // 4. Credits abziehen
     if (user && result) {
       await supabase.rpc("decrement_credits", { user_id: user.id });
     }
 
-    return NextResponse.json({ result }, { status: 200 });
+    return NextResponse.json({ result });
 
   } catch (err: any) {
-    console.error("[nexyra/generate] Error:", err.message);
-    return NextResponse.json({ message: "Fatal Engine Error" }, { status: 500 });
+    console.error("Fatal API Error:", err);
+    return NextResponse.json({ result: "-- Neural Link Offline" }, { status: 500 });
   }
 }
