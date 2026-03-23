@@ -1,481 +1,657 @@
-"use client";
+'use client'
 
-import Link from "next/link";
-import { Check, Zap, Code2, Cpu, Shield, ArrowRight, Sparkles } from "lucide-react";
+import Link from 'next/link'
+import {
+  Zap,
+  Code2,
+  Sparkles,
+  Check,
+  ArrowRight,
+  Terminal,
+  Shield,
+  Clock,
+} from 'lucide-react'
 
-const FEATURES = [
-  {
-    icon: <Zap size={20} />,
-    title: "Instant Generation",
-    desc: "From prompt to production-ready script in under 3 seconds. No waiting, no bottlenecks.",
-  },
-  {
-    icon: <Code2 size={20} />,
-    title: "Multi-Language Output",
-    desc: "Python, TypeScript, Bash, SQL — Nexyra understands your stack and outputs accordingly.",
-  },
-  {
-    icon: <Cpu size={20} />,
-    title: "Neural Optimization",
-    desc: "Every output is automatically optimized for performance, readability, and edge-cases.",
-  },
-  {
-    icon: <Shield size={20} />,
-    title: "Secure by Default",
-    desc: "Your prompts are never stored. Zero-knowledge architecture. Enterprise-grade privacy.",
-  },
-];
-
+/* ── Pricing Data ─────────────────────────────────────────── */
 const PLANS = [
   {
-    name: "Hobby",
-    price: "$8.99",
-    period: "/month",
-    description: "Perfect for solo builders and side projects.",
-    credits: "500 credits / mo",
+    id: 'hobby',
+    name: 'Hobby',
+    price: '8.99',
+    period: 'month',
+    description: 'Perfect for individual developers getting started.',
+    prompts: 100,
     features: [
-      "500 generation credits",
-      "5 languages supported",
-      "Standard output quality",
-      "Community support",
-      "API access (100 req/day)",
+      '100 AI Prompts / month',
+      'Claude 3.5 Sonnet powered',
+      'Luau Code Generation',
+      'Syntax Highlighting',
+      'Community Support',
     ],
-    cta: "Get Started",
-    popular: false,
+    cta: 'Get Started',
+    featured: false,
   },
   {
-    name: "Pro",
-    price: "$15.99",
-    period: "/month",
-    description: "For teams shipping production software at scale.",
-    credits: "Unlimited credits",
+    id: 'pro',
+    name: 'Pro',
+    price: '15.99',
+    period: 'month',
+    description: 'For serious developers building production games.',
+    prompts: 300,
     features: [
-      "Unlimited generation credits",
-      "All 20+ languages",
-      "Neural optimization enabled",
-      "Priority queue access",
-      "Unlimited API access",
-      "Team workspace (up to 5)",
-      "Custom system prompts",
+      '300 AI Prompts / month',
+      'Claude 3.5 Sonnet powered',
+      'Luau Code Generation',
+      'Syntax Highlighting',
+      'Priority Founder Support',
+      'Early Access Features',
+      'Advanced Code Patterns',
     ],
-    cta: "Get Started — Pro",
-    popular: true,
+    cta: 'Go Pro',
+    featured: true,
   },
-];
+] as const
 
-const STATS = [
-  { value: "2.4M+", label: "Scripts Generated" },
-  { value: "< 2.8s", label: "Avg. Generation" },
-  { value: "99.97%", label: "Uptime SLA" },
-  { value: "150+", label: "Countries" },
-];
+/* ── Feature Cards Data ───────────────────────────────────── */
+const FEATURES = [
+  {
+    icon: Zap,
+    title: 'Instant Generation',
+    description:
+      'Generate production-ready Luau code in milliseconds. No boilerplate, no syntax errors.',
+  },
+  {
+    icon: Shield,
+    title: 'Studio-Ready Output',
+    description:
+      'Every snippet is formatted for direct paste into Roblox Studio. Zero friction.',
+  },
+  {
+    icon: Terminal,
+    title: 'Deep Luau Knowledge',
+    description:
+      'Trained on Roblox API patterns. Understands DataStore, RemoteEvents, and more.',
+  },
+  {
+    icon: Clock,
+    title: '10× Faster Dev Cycles',
+    description:
+      'What used to take hours now takes seconds. Ship your game before your competition.',
+  },
+]
 
+/* ── Component ────────────────────────────────────────────── */
 export default function LandingPage() {
   return (
-    <div className="grain min-h-screen bg-black relative overflow-hidden">
-      {/* Background glows */}
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 100% 60% at 50% -5%, rgba(109,40,217,0.28) 0%, rgba(76,29,149,0.12) 40%, transparent 70%)",
-        }}
-      />
-      <div
-        className="pointer-events-none fixed"
-        style={{
-          width: "600px",
-          height: "600px",
-          left: "-200px",
-          top: "30%",
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle, rgba(109,40,217,0.08) 0%, transparent 70%)",
-          filter: "blur(40px)",
-        }}
-      />
-      <div
-        className="pointer-events-none fixed"
-        style={{
-          width: "500px",
-          height: "500px",
-          right: "-150px",
-          top: "10%",
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%)",
-          filter: "blur(40px)",
-        }}
-      />
-
-      {/* ─── Nav ─── */}
+    <main
+      style={{
+        minHeight: '100vh',
+        backgroundColor: '#000000',
+        overflowX: 'hidden',
+      }}
+    >
+      {/* ── Navigation ────────────────────────────────────── */}
       <nav
-        className="relative z-50 flex items-center justify-between px-8 py-5"
         style={{
-          borderBottom: "1px solid rgba(139,92,246,0.08)",
-          background: "rgba(0,0,0,0.6)",
-          backdropFilter: "blur(20px)",
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 50,
+          padding: '0 2rem',
+          height: '64px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'rgba(0, 0, 0, 0.7)',
+          backdropFilter: 'blur(40px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
         }}
       >
-        <div className="flex items-center gap-2">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)" }}
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 16px rgba(139, 92, 246, 0.5)',
+            }}
           >
-            <Sparkles size={14} className="text-white" />
+            <Sparkles size={16} color="#fff" />
           </div>
-          <span className="font-bold text-white text-sm tracking-tight">
-            Nexyra<span className="text-purple-400"> Engine</span>
+          <span
+            style={{
+              fontSize: '1.05rem',
+              fontWeight: 700,
+              color: '#ffffff',
+              letterSpacing: '-0.01em',
+            }}
+          >
+            Nexyra Engine
           </span>
         </div>
 
-        <div className="hidden md:flex items-center gap-8">
-          <a href="#features" className="nav-link">Features</a>
-          <a href="#pricing" className="nav-link">Pricing</a>
-          <a href="#" className="nav-link">Docs</a>
-          <a href="#" className="nav-link">Blog</a>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Link
-            href="/login"
-            className="nav-link text-sm font-medium"
-            style={{ color: "rgba(196,181,253,0.7)" }}
-          >
-            Sign in
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <Link href="/login">
+            <button className="btn-ghost" style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem' }}>
+              Sign In
+            </button>
           </Link>
-          <Link
-            href="/login"
-            className="glow-btn rounded-lg px-4 py-2 text-sm font-semibold text-white"
-            style={{
-              background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
-            }}
-          >
-            Get Started
+          <Link href="/login">
+            <button className="btn-primary" style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem' }}>
+              Start Building
+            </button>
           </Link>
         </div>
       </nav>
 
-      {/* ─── Hero ─── */}
-      <section className="relative z-10 flex flex-col items-center text-center px-6 pt-28 pb-20">
-        <div className="tag animate-fade-up mb-6">
-          ✦ Neural Script Engine v2.0 — Now Live
+      {/* ── Hero Section ──────────────────────────────────── */}
+      <section
+        style={{
+          paddingTop: '180px',
+          paddingBottom: '120px',
+          paddingLeft: '2rem',
+          paddingRight: '2rem',
+          textAlign: 'center',
+          maxWidth: '1200px',
+          margin: '0 auto',
+        }}
+      >
+        {/* Badge */}
+        <div
+          className="animate-fade-in-up"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background: 'rgba(139, 92, 246, 0.1)',
+            border: '1px solid rgba(139, 92, 246, 0.3)',
+            borderRadius: '999px',
+            padding: '0.375rem 1rem',
+            marginBottom: '2.5rem',
+          }}
+        >
+          <Sparkles size={13} color="#A78BFA" />
+          <span
+            style={{
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              color: '#A78BFA',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Powered by Claude 3.5 Sonnet
+          </span>
         </div>
 
+        {/* Main Headline */}
         <h1
-          className="animate-fade-up-delay-1 font-black italic leading-none tracking-tighter"
-          style={{ fontSize: "clamp(3rem, 8vw, 7rem)", maxWidth: "900px" }}
+          className="headline-hero animate-fade-in-up delay-100"
+          style={{ marginBottom: '1rem' }}
         >
-          <span className="text-white">Write Less.</span>
+          CODE FASTER.
           <br />
-          <span className="gradient-text-bright">Ship More.</span>
+          BUILD BETTER.
         </h1>
 
         <p
-          className="animate-fade-up-delay-2 mt-6 text-lg leading-relaxed"
-          style={{ maxWidth: "580px", color: "rgba(255,255,255,0.45)" }}
-        >
-          Nexyra Engine transforms raw intent into production-ready scripts.
-          Paste a prompt. Watch the machine work.{" "}
-          <em style={{ color: "rgba(196,181,253,0.7)" }}>Zero compromise.</em>
-        </p>
-
-        <div className="animate-fade-up-delay-3 mt-10 flex flex-col sm:flex-row items-center gap-4">
-          <Link
-            href="/login"
-            className="glow-btn animate-pulse-glow flex items-center gap-2 rounded-xl px-8 py-4 text-base font-bold text-white"
-            style={{
-              background:
-                "linear-gradient(135deg, #7c3aed 0%, #8b5cf6 50%, #6d28d9 100%)",
-            }}
-          >
-            Get Started Free
-            <ArrowRight size={16} />
-          </Link>
-          <Link
-            href="#features"
-            className="flex items-center gap-2 rounded-xl px-8 py-4 text-base font-semibold"
-            style={{
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              color: "rgba(255,255,255,0.6)",
-            }}
-          >
-            See how it works
-          </Link>
-        </div>
-
-        {/* Mock terminal */}
-        <div
-          className="animate-fade-up-delay-4 animate-float mt-16 w-full max-w-2xl rounded-2xl overflow-hidden text-left"
+          className="animate-fade-in-up delay-200"
           style={{
-            background: "rgba(8,0,20,0.9)",
-            border: "1px solid rgba(139,92,246,0.2)",
-            boxShadow:
-              "0 0 60px rgba(124,58,237,0.15), 0 40px 80px rgba(0,0,0,0.5)",
+            fontSize: 'clamp(1rem, 2vw, 1.25rem)',
+            color: 'rgba(255, 255, 255, 0.55)',
+            maxWidth: '560px',
+            margin: '0 auto 3rem',
+            lineHeight: 1.7,
+            fontWeight: 400,
           }}
         >
-          <div
-            className="flex items-center gap-2 px-5 py-4"
-            style={{ borderBottom: "1px solid rgba(139,92,246,0.1)" }}
-          >
-            <div className="w-3 h-3 rounded-full bg-red-500 opacity-70" />
-            <div className="w-3 h-3 rounded-full bg-yellow-500 opacity-70" />
-            <div className="w-3 h-3 rounded-full bg-green-500 opacity-70" />
-            <span
-              className="ml-3 text-xs font-mono"
-              style={{ color: "rgba(139,92,246,0.6)" }}
-            >
-              nexyra-engine — neural-studio
-            </span>
-          </div>
-          <div className="p-6 font-mono text-sm leading-relaxed">
-            <p style={{ color: "rgba(139,92,246,0.5)" }}>
-              {">"} Prompt:{" "}
-              <span style={{ color: "rgba(196,181,253,0.9)" }}>
-                &quot;build a rate limiter in TypeScript with Redis&quot;
-              </span>
-            </p>
-            <p className="mt-3" style={{ color: "rgba(255,255,255,0.25)" }}>
-              ⠿ Analyzing intent...
-            </p>
-            <p style={{ color: "rgba(255,255,255,0.25)" }}>
-              ⠿ Neural optimization pass 1/3...
-            </p>
-            <p style={{ color: "rgba(168,85,247,0.8)" }}>✓ Generated in 2.1s</p>
-            <pre
-              className="mt-4 overflow-x-auto"
-              style={{ color: "rgba(196,181,253,0.85)", fontSize: "0.78rem" }}
-            >
-{`import Redis from 'ioredis';
+          The AI engine built exclusively for Roblox developers.
+          Generate perfect Luau code in seconds — powered by Nexyra Labs.
+        </p>
 
-export async function rateLimit(
-  key: string,
-  limit: number = 100,
-  window: number = 60
-): Promise<{ allowed: boolean; remaining: number }> {
-  const redis = new Redis(process.env.REDIS_URL!);
-  const current = await redis.incr(key);
-  if (current === 1) await redis.expire(key, window);
-  return { allowed: current <= limit, remaining: Math.max(0, limit - current) };
-}`}
-            </pre>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Stats ─── */}
-      <section className="relative z-10 px-6 py-16">
+        {/* CTA Buttons */}
         <div
-          className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-px"
-          style={{ background: "rgba(139,92,246,0.15)", borderRadius: "16px" }}
+          className="animate-fade-in-up delay-300"
+          style={{
+            display: 'flex',
+            gap: '1rem',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+          }}
         >
-          {STATS.map((s) => (
-            <div
-              key={s.label}
-              className="flex flex-col items-center py-10 px-6"
-              style={{ background: "#000" }}
+          <Link href="/login">
+            <button
+              className="btn-primary animate-pulse-glow"
+              style={{
+                padding: '0.875rem 2.25rem',
+                fontSize: '0.95rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}
             >
-              <span className="font-black italic text-3xl gradient-text-bright">
-                {s.value}
-              </span>
-              <span
-                className="mt-1 text-xs font-medium tracking-wider uppercase"
-                style={{ color: "rgba(255,255,255,0.3)" }}
+              Launch Studio
+              <ArrowRight size={16} />
+            </button>
+          </Link>
+          <a href="#pricing">
+            <button
+              className="btn-ghost"
+              style={{ padding: '0.875rem 2.25rem', fontSize: '0.95rem' }}
+            >
+              View Pricing
+            </button>
+          </a>
+        </div>
+
+        {/* Stats Row */}
+        <div
+          className="animate-fade-in-up delay-400"
+          style={{
+            display: 'flex',
+            gap: '3rem',
+            justifyContent: 'center',
+            marginTop: '5rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          {[
+            { value: '3.5 Sonnet', label: 'AI Model' },
+            { value: '< 2s', label: 'Avg Response' },
+            { value: '99.9%', label: 'Uptime SLA' },
+          ].map((stat) => (
+            <div key={stat.label} style={{ textAlign: 'center' }}>
+              <div
+                style={{
+                  fontSize: '1.75rem',
+                  fontWeight: 800,
+                  color: '#A78BFA',
+                  letterSpacing: '-0.02em',
+                }}
               >
-                {s.label}
-              </span>
+                {stat.value}
+              </div>
+              <div
+                style={{
+                  fontSize: '0.8rem',
+                  color: 'rgba(255,255,255,0.35)',
+                  fontWeight: 500,
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  marginTop: '0.25rem',
+                }}
+              >
+                {stat.label}
+              </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ─── Features ─── */}
-      <section id="features" className="relative z-10 px-6 py-24">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="tag inline-block mb-4">Capabilities</div>
-            <h2 className="font-black italic text-4xl md:text-5xl text-white tracking-tight">
-              Built for engineers who{" "}
-              <span className="gradient-text">don&apos;t compromise</span>
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {FEATURES.map((f) => (
-              <div
-                key={f.title}
-                className="card-glass rounded-2xl p-8 group transition-all duration-300"
-                style={{ cursor: "default" }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor =
-                    "rgba(139,92,246,0.3)";
-                  (e.currentTarget as HTMLElement).style.background =
-                    "rgba(124,58,237,0.06)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor =
-                    "rgba(255,255,255,0.06)";
-                  (e.currentTarget as HTMLElement).style.background =
-                    "rgba(255,255,255,0.02)";
-                }}
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center mb-5"
-                  style={{ background: "rgba(139,92,246,0.15)", color: "#a855f7" }}
-                >
-                  {f.icon}
-                </div>
-                <h3 className="font-bold text-lg text-white mb-2">{f.title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.4)" }}>
-                  {f.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Pricing ─── */}
-      <section id="pricing" className="relative z-10 px-6 py-24">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="tag inline-block mb-4">Pricing</div>
-            <h2 className="font-black italic text-4xl md:text-5xl text-white tracking-tight">
-              Simple, honest{" "}
-              <span className="gradient-text">pricing</span>
-            </h2>
-            <p
-              className="mt-4 text-base"
-              style={{ color: "rgba(255,255,255,0.35)" }}
-            >
-              No hidden fees. No surprise overages. Cancel anytime.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {PLANS.map((plan) => (
-              <div
-                key={plan.name}
-                className={plan.popular ? "card-purple-active rounded-2xl p-8" : "card-glass rounded-2xl p-8"}
-                style={{ position: "relative" }}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-3 left-8">
-                    <span className="badge-popular">Most Popular</span>
-                  </div>
-                )}
-
-                <div className="mb-6">
-                  <h3 className="font-bold text-xl text-white">{plan.name}</h3>
-                  <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
-                    {plan.description}
-                  </p>
-                </div>
-
-                <div className="flex items-baseline gap-1 mb-2">
-                  <span className="font-black text-5xl tracking-tight gradient-text-bright">
-                    {plan.price}
-                  </span>
-                  <span className="text-sm" style={{ color: "rgba(255,255,255,0.3)" }}>
-                    {plan.period}
-                  </span>
-                </div>
-                <p className="text-xs font-semibold mb-8" style={{ color: "rgba(168,85,247,0.8)" }}>
-                  {plan.credits}
-                </p>
-
-                <ul className="space-y-3 mb-10">
-                  {plan.features.map((feat) => (
-                    <li key={feat} className="flex items-center gap-3 text-sm">
-                      <Check size={15} style={{ color: "#a855f7", flexShrink: 0 }} />
-                      <span style={{ color: "rgba(255,255,255,0.65)" }}>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Link
-                  href="/login"
-                  className={`block text-center rounded-xl py-3.5 text-sm font-bold transition-all duration-200 ${
-                    plan.popular ? "glow-btn" : ""
-                  }`}
-                  style={
-                    plan.popular
-                      ? {
-                          background: "linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)",
-                          color: "#fff",
-                        }
-                      : {
-                          background: "rgba(255,255,255,0.05)",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                          color: "rgba(255,255,255,0.7)",
-                        }
-                  }
-                >
-                  {plan.cta}
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── CTA Banner ─── */}
-      <section className="relative z-10 px-6 py-24">
+      {/* ── Features Grid ─────────────────────────────────── */}
+      <section
+        style={{
+          padding: '80px 2rem',
+          maxWidth: '1100px',
+          margin: '0 auto',
+        }}
+      >
         <div
-          className="max-w-3xl mx-auto text-center rounded-3xl p-16"
           style={{
-            background: "linear-gradient(135deg, rgba(109,40,217,0.2) 0%, rgba(76,29,149,0.1) 100%)",
-            border: "1px solid rgba(139,92,246,0.25)",
-            boxShadow: "0 0 80px rgba(124,58,237,0.12)",
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '1.25rem',
           }}
         >
-          <h2 className="font-black italic text-4xl text-white tracking-tight mb-4">
-            Ready to move at{" "}
-            <span className="gradient-text-bright">machine speed?</span>
-          </h2>
-          <p className="text-base mb-8" style={{ color: "rgba(255,255,255,0.4)" }}>
-            Join thousands of engineers already using Nexyra Engine to ship faster.
-          </p>
-          <Link
-            href="/login"
-            className="glow-btn inline-flex items-center gap-2 rounded-xl px-10 py-4 font-bold text-white"
-            style={{
-              background: "linear-gradient(135deg, #7c3aed 0%, #8b5cf6 50%, #6d28d9 100%)",
-            }}
-          >
-            Get Started Free
-            <ArrowRight size={16} />
-          </Link>
+          {FEATURES.map((feature, i) => (
+            <div
+              key={feature.title}
+              className="glass-card animate-fade-in-up"
+              style={{
+                padding: '1.75rem',
+                animationDelay: `${i * 0.1}s`,
+                animationFillMode: 'both',
+              }}
+            >
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  background: 'rgba(139, 92, 246, 0.15)',
+                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '1.25rem',
+                }}
+              >
+                <feature.icon size={20} color="#A78BFA" />
+              </div>
+              <h3
+                style={{
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  color: 'rgba(255,255,255,0.95)',
+                  marginBottom: '0.5rem',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                {feature.title}
+              </h3>
+              <p
+                style={{
+                  fontSize: '0.875rem',
+                  color: 'rgba(255,255,255,0.45)',
+                  lineHeight: 1.65,
+                }}
+              >
+                {feature.description}
+              </p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* ─── Footer ─── */}
-      <footer
-        className="relative z-10 px-8 py-8"
-        style={{ borderTop: "1px solid rgba(139,92,246,0.08)" }}
+      {/* ── Pricing Section ───────────────────────────────── */}
+      <section
+        id="pricing"
+        style={{
+          padding: '100px 2rem',
+          maxWidth: '900px',
+          margin: '0 auto',
+          textAlign: 'center',
+        }}
       >
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div
-              className="w-5 h-5 rounded-md flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)" }}
+        <div className="animate-fade-in-up">
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              background: 'rgba(139, 92, 246, 0.1)',
+              border: '1px solid rgba(139, 92, 246, 0.25)',
+              borderRadius: '999px',
+              padding: '0.3rem 0.875rem',
+              marginBottom: '1.5rem',
+            }}
+          >
+            <Code2 size={12} color="#A78BFA" />
+            <span
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: '#A78BFA',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+              }}
             >
-              <Sparkles size={10} className="text-white" />
-            </div>
-            <span className="text-xs font-semibold" style={{ color: "rgba(255,255,255,0.3)" }}>
-              © 2025 Nexyra Labs. All rights reserved.
+              Pricing
             </span>
           </div>
-          <div className="flex items-center gap-6">
-            {["Privacy", "Terms", "Docs", "Status"].map((item) => (
-              <a key={item} href="#" className="nav-link text-xs">
-                {item}
-              </a>
-            ))}
-          </div>
+
+          <h2
+            className="headline-section"
+            style={{ marginBottom: '1rem' }}
+          >
+            Simple, Transparent Pricing
+          </h2>
+          <p
+            style={{
+              color: 'rgba(255,255,255,0.45)',
+              fontSize: '1rem',
+              marginBottom: '4rem',
+              maxWidth: '480px',
+              margin: '0 auto 4rem',
+            }}
+          >
+            No hidden fees. Pay monthly, cancel anytime.
+          </p>
         </div>
+
+        {/* Cards */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1.5rem',
+            alignItems: 'start',
+          }}
+        >
+          {PLANS.map((plan, i) => (
+            <div
+              key={plan.id}
+              className={`animate-fade-in-up ${
+                plan.featured ? 'pricing-card-featured' : 'glass-card'
+              }`}
+              style={{
+                padding: '2.25rem',
+                textAlign: 'left',
+                animationDelay: `${i * 0.15}s`,
+                animationFillMode: 'both',
+                transform: plan.featured ? 'scale(1.02)' : 'scale(1)',
+              }}
+            >
+              {plan.featured && (
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    background: 'rgba(139, 92, 246, 0.2)',
+                    border: '1px solid rgba(139, 92, 246, 0.4)',
+                    borderRadius: '999px',
+                    padding: '0.25rem 0.75rem',
+                    marginBottom: '1.25rem',
+                  }}
+                >
+                  <Sparkles size={11} color="#A78BFA" />
+                  <span
+                    style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      color: '#A78BFA',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                    }}
+                  >
+                    Most Popular
+                  </span>
+                </div>
+              )}
+
+              <h3
+                style={{
+                  fontSize: '1.1rem',
+                  fontWeight: 700,
+                  color: 'rgba(255,255,255,0.95)',
+                  marginBottom: '0.375rem',
+                }}
+              >
+                {plan.name}
+              </h3>
+
+              <p
+                style={{
+                  fontSize: '0.825rem',
+                  color: 'rgba(255,255,255,0.4)',
+                  marginBottom: '1.75rem',
+                  lineHeight: 1.5,
+                }}
+              >
+                {plan.description}
+              </p>
+
+              {/* Price */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: '0.25rem',
+                  marginBottom: '2rem',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    color: 'rgba(255,255,255,0.5)',
+                    alignSelf: 'flex-start',
+                    marginTop: '0.5rem',
+                  }}
+                >
+                  $
+                </span>
+                <span
+                  style={{
+                    fontSize: '3.25rem',
+                    fontWeight: 800,
+                    color: plan.featured ? '#A78BFA' : 'rgba(255,255,255,0.95)',
+                    letterSpacing: '-0.03em',
+                    lineHeight: 1,
+                  }}
+                >
+                  {plan.price}
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.825rem',
+                    color: 'rgba(255,255,255,0.35)',
+                    fontWeight: 500,
+                  }}
+                >
+                  / {plan.period}
+                </span>
+              </div>
+
+              {/* Features List */}
+              <ul
+                style={{
+                  listStyle: 'none',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                  marginBottom: '2rem',
+                }}
+              >
+                {plan.features.map((feature) => (
+                  <li
+                    key={feature}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.625rem',
+                      fontSize: '0.875rem',
+                      color: 'rgba(255,255,255,0.7)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        background: plan.featured
+                          ? 'rgba(139, 92, 246, 0.2)'
+                          : 'rgba(255, 255, 255, 0.06)',
+                        border: `1px solid ${
+                          plan.featured
+                            ? 'rgba(139, 92, 246, 0.4)'
+                            : 'rgba(255, 255, 255, 0.1)'
+                        }`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Check
+                        size={10}
+                        color={plan.featured ? '#A78BFA' : 'rgba(255,255,255,0.5)'}
+                        strokeWidth={3}
+                      />
+                    </div>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+
+              {/* Divider */}
+              <div className="divider" style={{ margin: '0 0 1.5rem' }} />
+
+              {/* CTA */}
+              <Link href="/login">
+                <button
+                  className={plan.featured ? 'btn-primary' : 'btn-ghost'}
+                  style={{ width: '100%', justifyContent: 'center' }}
+                >
+                  {plan.cta}
+                  <ArrowRight
+                    size={14}
+                    style={{ marginLeft: '0.5rem', display: 'inline' }}
+                  />
+                </button>
+              </Link>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Footer ────────────────────────────────────────── */}
+      <footer
+        style={{
+          borderTop: '1px solid rgba(255,255,255,0.05)',
+          padding: '2.5rem',
+          textAlign: 'center',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem',
+            marginBottom: '0.75rem',
+          }}
+        >
+          <div
+            style={{
+              width: '22px',
+              height: '22px',
+              borderRadius: '6px',
+              background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Sparkles size={11} color="#fff" />
+          </div>
+          <span
+            style={{
+              fontSize: '0.875rem',
+              fontWeight: 700,
+              color: 'rgba(255,255,255,0.6)',
+            }}
+          >
+            Nexyra Labs
+          </span>
+        </div>
+        <p
+          style={{
+            fontSize: '0.75rem',
+            color: 'rgba(255,255,255,0.2)',
+            letterSpacing: '0.02em',
+          }}
+        >
+          © {new Date().getFullYear()} Nexyra Labs. All rights reserved.
+        </p>
       </footer>
-    </div>
-  );
+    </main>
+  )
 }

@@ -1,566 +1,422 @@
-"use client";
+'use client'
 
-import { useEffect, useState, useCallback } from "react";
-import { createClient } from "@supabase/supabase-js";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@supabase/supabase-js'
 import {
   Sparkles,
-  Code2,
-  LayoutDashboard,
-  History,
-  Settings,
   LogOut,
-  Zap,
-  ChevronRight,
+  Send,
   Copy,
   Check,
-  Loader2,
-} from "lucide-react";
+  Terminal,
+  Zap,
+  User,
+  ChevronRight,
+  RotateCcw,
+  Code2,
+  Command,
+  Cpu,
+  Shield,
+  Clock,
+  Settings,
+  LayoutDashboard,
+  ExternalLink,
+  Search,
+  Plus
+} from 'lucide-react'
 
+/* ── Supabase Client ──────────────────────────────────────── */
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+)
 
+/* ── Types ────────────────────────────────────────────────── */
 interface Profile {
-  id: string;
-  email: string;
-  credits: number;
-  plan: string;
+  id: string
+  email: string
+  credits: number
+  plan: string | null
 }
 
-const NAV_ITEMS = [
-  { icon: <LayoutDashboard size={16} />, label: "Overview", id: "overview" },
-  { icon: <Code2 size={16} />, label: "Neural Studio", id: "studio" },
-  { icon: <History size={16} />, label: "History", id: "history" },
-  { icon: <Settings size={16} />, label: "Settings", id: "settings" },
-];
+interface HistoryItem {
+  id: string
+  prompt: string
+  result: string
+  timestamp: string
+}
 
+/* ── Syntax Highlight Utility (Luau) ─────────────────────── */
+function highlightLuau(code: string): string {
+  const keywords =
+    /\b(local|function|end|if|then|else|elseif|while|do|for|in|repeat|until|return|break|true|false|nil|not|and|or|require|game|workspace|script|Instance|new|FindFirstChild|GetService|Connect|Disconnect|FireServer|FireClient|FireAllClients|OnServerEvent|OnClientEvent|WaitForChild|Players|LocalPlayer|Character|Humanoid|HumanoidRootPart|DataStoreService|GetDataStore|GetAsync|SetAsync|RemoveAsync|UpdateAsync|RunService|Heartbeat|RenderStepped|Stepped)\b/g
+
+  const strings = /(["'])(?:(?!\1)[^\\]|\\.)*\1/g
+  const comments = /--[^\n]*/g
+  const numbers = /\b\d+(\.\d+)?\b/g
+  const functions = /\b(\w+)\s*(?=\()/g
+
+  return code
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(comments, '<span style="color:#6A9955">$&</span>')
+    .replace(strings, '<span style="color:#CE9178">$&</span>')
+    .replace(keywords, '<span style="color:#569CD6;font-weight:600">$1</span>')
+    .replace(numbers, '<span style="color:#B5CEA8">$&</span>')
+    .replace(functions, '<span style="color:#DCDCAA">$1</span>')
+}
+
+/* ── Component ────────────────────────────────────────────── */
 export default function DashboardPage() {
-  const router = useRouter();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [activeTab, setActiveTab] = useState("studio");
-  const [prompt, setPrompt] = useState("");
-  const [output, setOutput] = useState("");
-  const [generating, setGenerating] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [loadingProfile, setLoadingProfile] = useState(true);
+  const router = useRouter()
 
-  const loadProfile = useCallback(async () => {
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+  // State Management
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [history, setHistory] = useState<HistoryItem[]>([])
+  const [loadingProfile, setLoadingProfile] = useState(true)
+  const [prompt, setPrompt] = useState('')
+  const [output, setOutput] = useState('')
+  const [generating, setGenerating] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState('studio')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-    if (userError || !user) {
-      router.push("/login");
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, email, credits, plan")
-      .eq("id", user.id)
-      .single();
-
-    if (error || !data) {
-      setProfile({
-        id: user.id,
-        email: user.email ?? "—",
-        credits: 0,
-        plan: "Hobby",
-      });
-    } else {
-      setProfile(data as Profile);
-    }
-
-    setLoadingProfile(false);
-  }, [router]);
-
+  /* ── Auth & Profile Fetch ─────────────────────────────── */
   useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
+      if (!session) {
+        router.replace('/login')
+        return
+      }
 
+      // Fetch Profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
+
+      if (profileError || !profileData) {
+        setProfile({
+          id: session.user.id,
+          email: session.user.email ?? '',
+          credits: 0,
+          plan: 'Free',
+        })
+      } else {
+        setProfile(profileData)
+      }
+
+      // Simulierter History Fetch
+      setHistory([
+        { id: '1', prompt: 'Kill Brick Script', result: '-- Script...', timestamp: '2h ago' },
+        { id: '2', prompt: 'DataStore Manager', result: '-- DataStore...', timestamp: '5h ago' }
+      ])
+
+      setLoadingProfile(false)
+    }
+
+    init()
+  }, [router])
+
+  /* ── Auto-resize Textarea ─────────────────────────────── */
+  const handlePromptChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setPrompt(e.target.value)
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 400)}px`
+    }
+  }, [])
+
+  /* ── Generate Code ────────────────────────────────────── */
   const handleGenerate = async () => {
-    if (!prompt.trim()) return;
-    setGenerating(true);
-    setOutput("");
+    if (!prompt.trim() || generating) return
+    if (!profile || profile.credits <= 0) {
+      setError('Insufficient Credits. Upgrade to NEXYRA PRO.')
+      return
+    }
+
+    setGenerating(true)
+    setError(null)
+    setOutput('')
 
     try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
-      });
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: prompt.trim() }),
+      })
 
-      if (!res.ok) {
-        const err = await res.json();
-        setOutput(`// Error: ${err.message ?? "Generation failed."}`);
-        return;
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error ?? `HTTP ${response.status}`)
       }
 
-      const data = await res.json();
-      setOutput(data.result ?? "// No output returned.");
+      const data = await response.json()
+      setOutput(data.result ?? '')
 
-      if (profile) {
-        setProfile((prev) =>
-          prev ? { ...prev, credits: Math.max(0, prev.credits - 1) } : prev
-        );
-      }
-    } catch {
-      setOutput("// Network error. Please try again.");
+      // Local Update
+      setProfile((prev) => prev ? { ...prev, credits: Math.max(0, prev.credits - 1) } : prev)
+
+      // Supabase Update
+      await supabase.from('profiles').update({ credits: Math.max(0, profile.credits - 1) }).eq('id', profile.id)
+      
+    } catch (err: any) {
+      setError(err.message || 'Neural Link Error.')
     } finally {
-      setGenerating(false);
+      setGenerating(false)
     }
-  };
+  }
 
+  /* ── UI Helpers ───────────────────────────────────────── */
   const handleCopy = async () => {
-    if (!output) return;
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+    if (!output) return
+    await navigator.clipboard.writeText(output)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
-  const emailDisplay = profile?.email
-    ? profile.email.length > 22
-      ? profile.email.slice(0, 20) + "…"
-      : profile.email
-    : "—";
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.replace('/login')
+  }
 
-  return (
-    <div className="flex h-screen bg-black overflow-hidden">
-      {/* ─── Sidebar ─── */}
-      <aside
-        className="sidebar-bg flex flex-col w-60 flex-shrink-0 py-6"
-        style={{ minWidth: "240px" }}
-      >
-        {/* Logo */}
-        <div className="px-5 mb-8 flex items-center gap-2">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)" }}
-          >
-            <Sparkles size={14} className="text-white" />
+  /* ── Loading View ─────────────────────────────────────── */
+  if (loadingProfile) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '2rem' }}>
+        <div style={{ position: 'relative' }}>
+          <div style={{ width: '60px', height: '60px', borderRadius: '18px', background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 40px rgba(139,92,246,0.6)', animation: 'pulse 2s infinite' }}>
+            <Cpu size={30} color="#fff" />
           </div>
-          <span className="font-bold text-sm tracking-tight text-white">
-            Nexyra<span className="text-purple-400"> Engine</span>
-          </span>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Nexyra Engine</p>
+          <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>Initializing Neural Core...</p>
+        </div>
+      </div>
+    )
+  }
+
+  /* ── Main Dashboard View ─────────────────────────────── */
+  return (
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#000000', color: '#fff', overflow: 'hidden', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      
+      {/* ── SIDEBAR (LEFT) ── */}
+      <aside style={{ width: '280px', flexShrink: 0, borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', background: 'linear-gradient(180deg, rgba(10,10,10,1) 0%, rgba(0,0,0,1) 100%)', zIndex: 10 }}>
+        
+        {/* Brand Header */}
+        <div style={{ padding: '2rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 20px rgba(139,92,246,0.3)' }}>
+            <Zap size={20} fill="white" color="white" />
+          </div>
+          <div>
+            <div style={{ fontSize: '1rem', fontWeight: 900, letterSpacing: '-0.02em', background: 'linear-gradient(to right, #fff, #A78BFA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>NEXYRA ENGINE</div>
+            <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', fontWeight: 700, letterSpacing: '0.1em' }}>BY NEXYRA LABS</div>
+          </div>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 space-y-1">
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`sidebar-item w-full text-left ${activeTab === item.id ? "active" : ""}`}
-            >
-              <span style={{ flexShrink: 0 }}>{item.icon}</span>
-              <span>{item.label}</span>
-              {activeTab === item.id && (
-                <ChevronRight
-                  size={12}
-                  className="ml-auto"
-                  style={{ color: "rgba(168,85,247,0.6)" }}
-                />
-              )}
-            </button>
-          ))}
+        {/* Navigation Section */}
+        <nav style={{ flex: 1, padding: '0 1rem' }}>
+          <div style={{ fontSize: '0.6rem', fontWeight: 800, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.15em', padding: '0 0.75rem 0.75rem' }}>Workspace</div>
+          
+          <button 
+            onClick={() => setActiveTab('studio')}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.8rem 1rem', borderRadius: '12px', border: 'none', background: activeTab === 'studio' ? 'rgba(139, 92, 246, 0.1)' : 'transparent', color: activeTab === 'studio' ? '#A78BFA' : 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'all 0.2s', marginBottom: '0.5rem' }}
+          >
+            <Terminal size={18} color={activeTab === 'studio' ? '#A78BFA' : 'currentColor'} />
+            <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Neural Studio</span>
+            <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: activeTab === 'studio' ? 1 : 0 }} />
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('history')}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.8rem 1rem', borderRadius: '12px', border: 'none', background: activeTab === 'history' ? 'rgba(139, 92, 246, 0.1)' : 'transparent', color: activeTab === 'history' ? '#A78BFA' : 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'all 0.2s', marginBottom: '0.5rem' }}
+          >
+            <Clock size={18} />
+            <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>History</span>
+          </button>
+
+          <button 
+             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.8rem 1rem', borderRadius: '12px', border: 'none', background: 'transparent', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'all 0.2s' }}
+          >
+            <Settings size={18} />
+            <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Settings</span>
+          </button>
         </nav>
 
-        {/* Divider */}
-        <div className="divider-purple mx-5 my-4" />
-
-        {/* Profile block */}
-        <div className="px-3">
-          {loadingProfile ? (
-            <div className="px-4 py-3 flex items-center gap-2">
-              <Loader2
-                size={14}
-                className="animate-spin"
-                style={{ color: "rgba(139,92,246,0.5)" }}
-              />
-              <span className="text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>
-                Loading profile…
-              </span>
+        {/* Credits Status Card */}
+        <div style={{ padding: '1.5rem' }}>
+          <div style={{ background: 'rgba(139, 92, 246, 0.05)', border: '1px solid rgba(139, 92, 246, 0.15)', borderRadius: '20px', padding: '1.25rem', backdropFilter: 'blur(10px)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>Credits Status</span>
+              <Shield size={12} color="#A78BFA" />
             </div>
-          ) : (
-            <div
-              className="rounded-xl p-3"
-              style={{
-                background: "rgba(139,92,246,0.06)",
-                border: "1px solid rgba(139,92,246,0.15)",
-              }}
-            >
-              {/* Avatar + email */}
-              <div className="flex items-center gap-3 mb-3">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-                  style={{
-                    background: "linear-gradient(135deg, #4c1d95, #7c3aed)",
-                    color: "#e9d5ff",
-                  }}
-                >
-                  {profile?.email?.charAt(0).toUpperCase() ?? "?"}
-                </div>
-                <div className="overflow-hidden">
-                  <p
-                    className="text-xs font-medium truncate"
-                    style={{ color: "rgba(255,255,255,0.7)" }}
-                  >
-                    {emailDisplay}
-                  </p>
-                  <p className="text-xs" style={{ color: "rgba(168,85,247,0.7)" }}>
-                    {profile?.plan ?? "Hobby"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Credits */}
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>
-                  Credits
-                </span>
-                <span className="credit-pill">
-                  <Zap size={10} className="inline mr-1 -mt-px" />
-                  {profile?.credits ?? 0}
-                </span>
-              </div>
-
-              {/* Credit bar */}
-              <div
-                className="rounded-full h-1 w-full overflow-hidden"
-                style={{ background: "rgba(255,255,255,0.06)" }}
-              >
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${Math.min(100, ((profile?.credits ?? 0) / 500) * 100)}%`,
-                    background: "linear-gradient(90deg, #6d28d9, #a855f7)",
-                  }}
-                />
-              </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 900, marginBottom: '0.5rem', letterSpacing: '-0.03em' }}>
+              {profile?.credits} <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>/ 300</span>
             </div>
-          )}
+            <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', overflow: 'hidden' }}>
+              <div style={{ width: `${((profile?.credits || 0) / 300) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #8B5CF6, #D8B4FE)', borderRadius: '10px', transition: 'width 1s ease-out' }} />
+            </div>
+            <button style={{ width: '100%', marginTop: '1rem', background: '#fff', border: 'none', padding: '0.6rem', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 800, color: '#000', cursor: 'pointer' }}>UPGRADE PLAN</button>
+          </div>
+        </div>
 
-          {/* Sign out */}
-          <button
-            onClick={handleSignOut}
-            className="sidebar-item w-full mt-2 text-left"
-            style={{ color: "rgba(239,68,68,0.5)" }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.color = "#fca5a5";
-              (e.currentTarget as HTMLElement).style.background =
-                "rgba(239,68,68,0.08)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.color =
-                "rgba(239,68,68,0.5)";
-              (e.currentTarget as HTMLElement).style.background = "transparent";
-            }}
-          >
-            <LogOut size={15} />
-            <span>Sign Out</span>
+        {/* User Footer */}
+        <div style={{ padding: '1.25rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <User size={14} color="rgba(255,255,255,0.5)" />
+            </div>
+            <div style={{ overflow: 'hidden' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{profile?.email}</div>
+              <div style={{ fontSize: '0.6rem', color: '#4ADE80', fontWeight: 800, textTransform: 'uppercase' }}>{profile?.plan || 'PRO'} USER</div>
+            </div>
+          </div>
+          <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.1)', padding: '0.6rem', borderRadius: '10px', color: '#F87171', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+            <LogOut size={14} /> SIGN OUT
           </button>
         </div>
       </aside>
 
-      {/* ─── Main content ─── */}
-      <main className="flex-1 overflow-y-auto grid-bg relative">
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 60% 40% at 70% 20%, rgba(109,40,217,0.07) 0%, transparent 60%)",
-          }}
-        />
-
-        {activeTab === "studio" && (
-          <StudioPanel
-            prompt={prompt}
-            setPrompt={setPrompt}
-            output={output}
-            generating={generating}
-            copied={copied}
-            onGenerate={handleGenerate}
-            onCopy={handleCopy}
-          />
-        )}
-
-        {activeTab === "overview" && (
-          <OverviewPanel profile={profile} loadingProfile={loadingProfile} />
-        )}
-
-        {activeTab === "history" && <PlaceholderPanel label="Generation History" />}
-        {activeTab === "settings" && <PlaceholderPanel label="Settings" />}
-      </main>
-    </div>
-  );
-}
-
-/* ─── Studio Panel ─── */
-function StudioPanel({
-  prompt,
-  setPrompt,
-  output,
-  generating,
-  copied,
-  onGenerate,
-  onCopy,
-}: {
-  prompt: string;
-  setPrompt: (v: string) => void;
-  output: string;
-  generating: boolean;
-  copied: boolean;
-  onGenerate: () => void;
-  onCopy: () => void;
-}) {
-  return (
-    <div className="relative z-10 p-8 max-w-5xl mx-auto">
-      <div className="mb-8">
-        <h1 className="font-black italic text-3xl text-white tracking-tight">
-          Neural <span className="gradient-text">Studio</span>
-        </h1>
-        <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
-          Describe what you need. The engine does the rest.
-        </p>
-      </div>
-
-      {/* Prompt area */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <label
-            className="text-xs font-semibold uppercase tracking-wider"
-            style={{ color: "rgba(196,181,253,0.5)" }}
-          >
-            Prompt
-          </label>
-          <span className="text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>
-            {prompt.length} chars
-          </span>
-        </div>
-        <textarea
-          className="studio-textarea"
-          rows={10}
-          placeholder={`Describe what you want to generate...\n\nExamples:\n→ "Build a Redis-backed rate limiter in TypeScript"\n→ "Write a Python script to parse and validate JSON schemas"\n→ "Create a bash deployment script for a Node.js app"`}
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onGenerate();
-          }}
-        />
-        <p className="text-xs mt-1.5" style={{ color: "rgba(255,255,255,0.15)" }}>
-          Tip: Press{" "}
-          <kbd
-            className="px-1.5 py-0.5 rounded text-xs"
-            style={{
-              background: "rgba(255,255,255,0.07)",
-              border: "1px solid rgba(255,255,255,0.1)",
-            }}
-          >
-            ⌘ Enter
-          </kbd>{" "}
-          to generate
-        </p>
-      </div>
-
-      {/* Generate button */}
-      <button
-        onClick={onGenerate}
-        disabled={generating || !prompt.trim()}
-        className="glow-btn flex items-center gap-2.5 rounded-xl px-7 py-3.5 font-bold text-sm text-white mb-8"
-        style={{
-          background: "linear-gradient(135deg, #7c3aed 0%, #8b5cf6 50%, #6d28d9 100%)",
-          opacity: generating || !prompt.trim() ? 0.5 : 1,
-          cursor: generating || !prompt.trim() ? "not-allowed" : "pointer",
-          transition: "all 0.2s ease",
-        }}
-      >
-        {generating ? (
-          <>
-            <Loader2 size={15} className="animate-spin" />
-            Generating…
-          </>
-        ) : (
-          <>
-            <Zap size={15} />
-            Sync & Generate
-          </>
-        )}
-      </button>
-
-      {/* Output */}
-      {(output || generating) && (
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label
-              className="text-xs font-semibold uppercase tracking-wider"
-              style={{ color: "rgba(196,181,253,0.5)" }}
-            >
-              Output
-            </label>
-            {output && (
-              <button
-                onClick={onCopy}
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all duration-200"
-                style={{
-                  background: copied ? "rgba(34,197,94,0.1)" : "rgba(139,92,246,0.1)",
-                  border: copied ? "1px solid rgba(34,197,94,0.3)" : "1px solid rgba(139,92,246,0.2)",
-                  color: copied ? "#86efac" : "rgba(196,181,253,0.7)",
-                  cursor: "pointer",
-                }}
-              >
-                {copied ? (
-                  <><Check size={12} /> Copied</>
-                ) : (
-                  <><Copy size={12} /> Copy</>
-                )}
-              </button>
-            )}
+      {/* ── MAIN WORKSPACE (RIGHT) ── */}
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+        
+        {/* Background Gradients */}
+        <div style={{ position: 'absolute', top: '-10%', right: '-10%', width: '40%', height: '40%', background: 'radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        
+        {/* Header Area */}
+        <header style={{ padding: '1.5rem 2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+          <div>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-0.03em' }}>Neural Studio</h1>
+            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>Refining ideas into Luau bytecode.</p>
           </div>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(74, 222, 128, 0.05)', border: '1px solid rgba(74, 222, 128, 0.15)', padding: '0.5rem 1rem', borderRadius: '99px' }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ADE80', boxShadow: '0 0 10px #4ADE80' }} />
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#4ADE80', letterSpacing: '0.05em' }}>ENGINE ONLINE</span>
+             </div>
+          </div>
+        </header>
 
-          <div className="output-block">
-            {generating && !output ? (
-              <div className="flex items-center gap-2" style={{ color: "rgba(139,92,246,0.6)" }}>
-                <Loader2 size={14} className="animate-spin" />
-                Neural engine is thinking…
+        {/* Content Area */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '2.5rem' }}>
+          <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            
+            {/* Input Box (Liquid Glass) */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '24px', padding: '1.75rem', position: 'relative', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', backdropFilter: 'blur(20px)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                <div style={{ padding: '0.4rem', borderRadius: '8px', background: 'rgba(139, 92, 246, 0.1)' }}>
+                  <Command size={16} color="#A78BFA" />
+                </div>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.05em' }}>NEURAL PROMPT</span>
               </div>
-            ) : (
-              output
+
+              <textarea
+                ref={textareaRef}
+                value={prompt}
+                onChange={handlePromptChange}
+                placeholder="Describe your Roblox mechanic... (e.g. A custom proximity prompt shop system)"
+                style={{ width: '100%', background: 'transparent', border: 'none', color: '#fff', fontSize: '1.1rem', fontWeight: 500, outline: 'none', resize: 'none', minHeight: '150px', lineHeight: '1.6' }}
+              />
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                   <div style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>CTRL + ENTER</div>
+                </div>
+                <button 
+                  onClick={handleGenerate}
+                  disabled={generating || !prompt.trim()}
+                  style={{ background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', color: '#fff', border: 'none', padding: '0.8rem 2rem', borderRadius: '14px', fontSize: '0.9rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', transition: 'all 0.3s', boxShadow: '0 10px 20px rgba(139,92,246,0.2)' }}
+                >
+                  {generating ? <RotateCcw size={18} className="animate-spin" /> : <Sparkles size={18} fill="white" />}
+                  {generating ? 'THINKING...' : 'GENERATE SCRIPT'}
+                </button>
+              </div>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div style={{ padding: '1rem 1.5rem', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '16px', color: '#F87171', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <Zap size={16} /> {error}
+              </div>
             )}
+
+            {/* Output Code Box (High-End Glass) */}
+            {output && (
+              <div style={{ background: '#050505', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px', overflow: 'hidden', animation: 'fadeIn 0.5s ease-out' }}>
+                <div style={{ padding: '1rem 1.75rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.01)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <Code2 size={18} color="#A78BFA" />
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em' }}>LUAU SOURCE CODE</span>
+                  </div>
+                  <button 
+                    onClick={handleCopy}
+                    style={{ background: 'transparent', border: 'none', color: copied ? '#4ADE80' : 'rgba(255,255,255,0.4)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: 800, transition: 'all 0.2s' }}
+                  >
+                    {copied ? <Check size={16} /> : <Copy size={16} />}
+                    {copied ? 'COPIED TO CLIPBOARD' : 'COPY CODE'}
+                  </button>
+                </div>
+                
+                <div style={{ padding: '2rem', position: 'relative' }}>
+                  <pre style={{ margin: 0, fontSize: '0.95rem', lineHeight: '1.7', fontFamily: '"JetBrains Mono", "Fira Code", monospace', overflowX: 'auto' }}>
+                    <code dangerouslySetInnerHTML={{ __html: highlightLuau(output) }} />
+                  </pre>
+                </div>
+
+                <div style={{ padding: '1rem 1.75rem', background: 'rgba(139, 92, 246, 0.03)', borderTop: '1px solid rgba(255,255,255,0.03)', display: 'flex', justifyContent: 'center' }}>
+                   <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.2)', fontWeight: 600 }}>Optimized for Roblox Studio 2026</p>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
-      )}
+
+        {/* Footer Info */}
+        <footer style={{ padding: '1rem 2.5rem', borderTop: '1px solid rgba(255,255,255,0.03)', display: 'flex', justifyContent: 'center' }}>
+           <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.15)', fontWeight: 700, letterSpacing: '0.2em' }}>NEXYRA ENGINE V4.2 // CLAUDE-3.5-SONNET</div>
+        </footer>
+      </main>
+
+      {/* ── Global Styles ── */}
+      <style jsx global>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.05); opacity: 0.8; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        ::-webkit-scrollbar {
+          width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+          background: rgba(255,255,255,0.05);
+          border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background: rgba(255,255,255,0.1);
+        }
+      `}</style>
     </div>
-  );
-}
-
-/* ─── Overview Panel ─── */
-function OverviewPanel({
-  profile,
-  loadingProfile,
-}: {
-  profile: Profile | null;
-  loadingProfile: boolean;
-}) {
-  return (
-    <div className="relative z-10 p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="font-black italic text-3xl text-white tracking-tight">
-          Overview
-        </h1>
-        <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
-          Your Nexyra Engine at a glance.
-        </p>
-      </div>
-
-      {loadingProfile ? (
-        <div className="flex items-center gap-2" style={{ color: "rgba(139,92,246,0.5)" }}>
-          <Loader2 size={16} className="animate-spin" />
-          <span className="text-sm">Loading…</span>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          {[
-            {
-              label: "Credits Remaining",
-              value: profile?.credits ?? 0,
-              sub: "this billing cycle",
-              accent: "#a855f7",
-            },
-            {
-              label: "Current Plan",
-              value: profile?.plan ?? "Hobby",
-              sub: "active subscription",
-              accent: "#8b5cf6",
-            },
-            {
-              label: "Account Email",
-              value: profile?.email ?? "—",
-              sub: "verified",
-              accent: "#7c3aed",
-              truncate: true,
-            },
-          ].map((stat) => (
-            <div key={stat.label} className="card-glass rounded-2xl p-6">
-              <p
-                className="text-xs font-semibold uppercase tracking-wider mb-2"
-                style={{ color: "rgba(255,255,255,0.25)" }}
-              >
-                {stat.label}
-              </p>
-              <p
-                className="font-black italic text-2xl mb-1"
-                style={{
-                  color: stat.accent,
-                  overflow: stat.truncate ? "hidden" : undefined,
-                  textOverflow: stat.truncate ? "ellipsis" : undefined,
-                  whiteSpace: stat.truncate ? "nowrap" : undefined,
-                }}
-              >
-                {stat.value}
-              </p>
-              <p className="text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>
-                {stat.sub}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div
-        className="rounded-2xl p-6"
-        style={{
-          background: "rgba(124,58,237,0.07)",
-          border: "1px solid rgba(139,92,246,0.2)",
-        }}
-      >
-        <h3 className="font-bold text-white mb-2 flex items-center gap-2">
-          <Zap size={16} style={{ color: "#a855f7" }} />
-          Quick Start
-        </h3>
-        <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
-          Head to <strong style={{ color: "#c4b5fd" }}>Neural Studio</strong> to
-          generate your first script. Paste a prompt, hit{" "}
-          <strong style={{ color: "#c4b5fd" }}>Sync & Generate</strong>, and
-          watch the engine work.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Placeholder Panel ─── */
-function PlaceholderPanel({ label }: { label: string }) {
-  return (
-    <div className="relative z-10 p-8 max-w-4xl mx-auto">
-      <h1 className="font-black italic text-3xl text-white tracking-tight mb-2">
-        {label}
-      </h1>
-      <p className="text-sm" style={{ color: "rgba(255,255,255,0.25)" }}>
-        Coming soon — this section is under construction.
-      </p>
-      <div
-        className="mt-8 rounded-2xl p-12 text-center"
-        style={{
-          background: "rgba(255,255,255,0.02)",
-          border: "1px dashed rgba(139,92,246,0.2)",
-        }}
-      >
-        <Sparkles
-          size={32}
-          style={{ color: "rgba(139,92,246,0.3)", margin: "0 auto 12px" }}
-        />
-        <p className="text-sm" style={{ color: "rgba(255,255,255,0.2)" }}>
-          Nothing here yet.
-        </p>
-      </div>
-    </div>
-  );
+  )
 }
